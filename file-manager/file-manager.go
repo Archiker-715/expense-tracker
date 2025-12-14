@@ -1,0 +1,72 @@
+package fm
+
+import (
+	"encoding/csv"
+	"fmt"
+	"log"
+	"os"
+)
+
+func CheckExist(fileName string) bool {
+	if _, err := os.Stat(fileName); os.IsNotExist(err) {
+		return false
+	} else if err != nil {
+		log.Fatalf("check file exists error: %v", err)
+	}
+
+	return true
+}
+
+func Create(fileName string) (*os.File, error) {
+	file, err := os.Create(fileName)
+	if err != nil {
+		return nil, fmt.Errorf("create file error: %w", err)
+	}
+	return file, nil
+}
+
+func Open(fileName string, flag int) (*os.File, error) {
+	file, err := os.OpenFile(fileName, flag, 0644) // os.O_RDWR or os.O_APPEND
+	if err != nil {
+		return nil, fmt.Errorf("open file error: %w", err)
+	}
+	return file, nil
+}
+
+func Write(file *os.File, input [][]string) error {
+	w := csv.NewWriter(file)
+	err := w.Write(input[0])
+	if err != nil {
+		return fmt.Errorf("writing err: %q", err)
+	}
+	w.Flush()
+
+	return nil
+}
+
+func Read(file *os.File) ([][]string, error) {
+	r := csv.NewReader(file)
+	s, err := r.ReadAll()
+	if err != nil {
+		return nil, fmt.Errorf("read file error: %q", err)
+	}
+	if len(s) == 0 {
+		return nil, fmt.Errorf("file is empty")
+	}
+	return s, nil
+}
+
+func Print(s [][]string) error {
+	if len(s) == 0 {
+		return fmt.Errorf("file is empty")
+	}
+
+	for _, innerS := range s {
+		fmt.Println("")
+		for i := 0; i < len(innerS); i++ {
+			fmt.Printf("%s ", innerS[i])
+		}
+	}
+
+	return nil
+}
