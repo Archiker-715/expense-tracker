@@ -20,8 +20,7 @@ func main() {
 		"add",
 		"--description", "desc",
 		"--amount", "10",
-		"--test", "10",
-		"--test2", "102",
+		"--test2", "20",
 	}
 
 	switch os.Args[1] {
