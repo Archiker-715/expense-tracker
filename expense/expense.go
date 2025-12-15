@@ -9,7 +9,7 @@ import (
 	fm "github.com/Archiker-715/expense-tracker/file-manager"
 )
 
-func AddExpense(expenseDesc, expenseAmount *string) (err error) {
+func AddExpense(expenseDesc, expenseAmount *string, untypedFlags []string) (err error) {
 	maxExpId := func(s []string) (string, error) {
 		var maxExpenseId int
 		for range s {
