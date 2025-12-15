@@ -66,7 +66,7 @@ func AddExpense(expenseDesc, expenseAmount *string, untypedFlags []string) (err 
 		if file, err = fm.Create(constants.ExpenseFileName); err != nil {
 			return fmt.Errorf("create %q: %w", constants.ExpenseFileName, err)
 		}
-		fm.Write(file, CSVheaders)
+		fm.Write(file, os.O_APPEND, CSVheaders)
 		fmt.Printf("file %q succesfully created\n", constants.ExpenseFileName)
 		file.Close()
 		fallthrough
@@ -85,17 +85,32 @@ func AddExpense(expenseDesc, expenseAmount *string, untypedFlags []string) (err 
 		return fmt.Errorf("add expense: %w", err)
 	}
 
+	input := fillInput(additionalValues, maxExpenseId)
+
 	if len(s[0]) == len(CSVheaders[0]) {
-		input := fillInput(additionalValues, maxExpenseId)
-		fm.Write(file, input)
+		fm.Write(file, os.O_APPEND, input)
 	}
 
 	if len(s[0]) < len(CSVheaders[0]) {
 		for i := 0; i < (len(CSVheaders[0]) - len(s[0])); i++ {
 			for j := 0; j < len(s); j++ {
-				s[j] = append(s[j], "")
+				if j == 0 {
+					s[j] = CSVheaders[0]
+				} else {
+					s[j] = append(s[j], "")
+				}
 			}
 		}
+		s = append(s, input[0])
+		file.Close()
+		if file, err = fm.Open(constants.ExpenseFileName, os.O_RDWR); err != nil {
+			return fmt.Errorf("create %q: %w", constants.ExpenseFileName, err)
+		}
+		fm.Write(file, os.O_RDWR, s)
+	}
+
+	if len(s[0]) > len(CSVheaders[0]) {
+		// ...
 	}
 
 	return nil

@@ -21,6 +21,7 @@ func main() {
 		"--description", "desc",
 		"--amount", "10",
 		"--test", "10",
+		"--test2", "102",
 	}
 
 	switch os.Args[1] {

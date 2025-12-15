@@ -26,19 +26,30 @@ func Create(fileName string) (*os.File, error) {
 }
 
 func Open(fileName string, flag int) (*os.File, error) {
-	file, err := os.OpenFile(fileName, flag, 0644) // os.O_RDWR or os.O_APPEND
+	file, err := os.OpenFile(fileName, flag, 0644)
 	if err != nil {
 		return nil, fmt.Errorf("open file error: %w", err)
 	}
 	return file, nil
 }
 
-func Write(file *os.File, input [][]string) error {
+func Write(file *os.File, flag int, input [][]string) error {
 	w := csv.NewWriter(file)
-	err := w.Write(input[0])
-	if err != nil {
-		return fmt.Errorf("writing err: %q", err)
+
+	if flag == os.O_APPEND {
+		err := w.Write(input[0])
+		if err != nil {
+			return fmt.Errorf("writing err: %q", err)
+		}
 	}
+
+	if flag == os.O_RDWR {
+		err := w.WriteAll(input)
+		if err != nil {
+			return fmt.Errorf("writing all err: %q", err)
+		}
+	}
+
 	w.Flush()
 
 	return nil
