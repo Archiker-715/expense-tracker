@@ -56,8 +56,9 @@ func AddExpense(expenseDesc, expenseAmount *string, untypedFlags []string) (err 
 		return inp
 	}
 
-	addHeader := func(CSVheaders, inputCSVheaders, input [][]string, file *os.File) error {
-		for i := 0; i < (len(inputCSVheaders[0]) - len(CSVheaders[0])); i++ {
+	addHeaderWriteInput := func(CSVheaders, inputCSVheaders, input [][]string, file *os.File) error {
+		iCondition := len(inputCSVheaders[0]) - len(CSVheaders[0])
+		for i := 0; i < iCondition; i++ {
 			for j := 0; j < len(CSVheaders); j++ {
 				if j == 0 {
 					CSVheaders[j] = inputCSVheaders[0]
@@ -76,6 +77,50 @@ func AddExpense(expenseDesc, expenseAmount *string, untypedFlags []string) (err 
 		if err := fm.Write(file, os.O_RDWR, CSVheaders); err != nil {
 			return fmt.Errorf("create %q: %w", constants.ExpenseFileName, err)
 		}
+		return nil
+	}
+
+	newHeadersFromInput := func(currentCSV, inputCSVheaders [][]string) (origHeaders, newHeaders []string, err error) {
+		origHeaders, newHeaders = make([]string, 0), make([]string, 0)
+		origHeaders, newHeaders = append(origHeaders, currentCSV[0]...), append(newHeaders, inputCSVheaders[0]...)
+
+		for _, CSVheader := range currentCSV[0] {
+			for _, inputCSVheader := range inputCSVheaders[0] {
+				if CSVheader == inputCSVheader {
+					idx := slices.Index(origHeaders, CSVheader)
+					if idx == -1 {
+						return nil, nil, errors.New("columns's header not found")
+					}
+					origHeaders = slices.Delete(origHeaders, idx, idx+1)
+					idx = slices.Index(newHeaders, CSVheader)
+					if idx == -1 {
+						return nil, nil, errors.New("columns's header not found")
+					}
+					newHeaders = slices.Delete(newHeaders, idx, idx+1)
+					break
+				}
+			}
+		}
+		return
+	}
+
+	addNewHeaders := func(currentCSV, input [][]string, origHeaders, newHeaders []string, file *os.File) error {
+		for _, v := range origHeaders {
+			idx := slices.Index(currentCSV[0], v)
+			if idx == -1 {
+				newHeaders = append(newHeaders, v)
+			}
+			input[0] = slices.Insert(input[0], idx, "")
+		}
+
+		if len(newHeaders) > 0 {
+			tempNewCSVheaders := make([][]string, 0, len(currentCSV[0]))
+			tempNewCSVheaders = append(tempNewCSVheaders, append(currentCSV[0], newHeaders...))
+			if err := addHeaderWriteInput(currentCSV, tempNewCSVheaders, input, file); err != nil {
+				return fmt.Errorf("add header: %w", err)
+			}
+		}
+
 		return nil
 	}
 
@@ -112,13 +157,10 @@ func AddExpense(expenseDesc, expenseAmount *string, untypedFlags []string) (err 
 		return fmt.Errorf("add expense: %w", err)
 	}
 
+	eq := slices.Equal(currentCSV[0], inputCSVheaders[0])
 	input := fillInput(additionalValues, maxExpenseId)
 
-	// i need control when len(currentCSV[0]) == len(inputCSVheaders[0]) but flags are different
-	// maybe somve func which does same work in if len(currentCSV[0]) > len(inputCSVheaders[0])
-	// and i could manage process on diff
-
-	if len(currentCSV[0]) == len(inputCSVheaders[0]) {
+	if len(currentCSV[0]) == len(inputCSVheaders[0]) && eq {
 		if err := fm.Write(file, os.O_APPEND, input); err != nil {
 			return fmt.Errorf("create %q: %w", constants.ExpenseFileName, err)
 		}
@@ -126,49 +168,37 @@ func AddExpense(expenseDesc, expenseAmount *string, untypedFlags []string) (err 
 	}
 
 	if len(currentCSV[0]) < len(inputCSVheaders[0]) {
-		if err := addHeader(currentCSV, inputCSVheaders, input, file); err != nil {
+		if err := addHeaderWriteInput(currentCSV, inputCSVheaders, input, file); err != nil {
 			return fmt.Errorf("add header: %w", err)
 		}
 		return nil
 	}
 
+	if len(currentCSV[0]) == len(inputCSVheaders[0]) && !eq {
+		origHeaders, newHeaders, err := newHeadersFromInput(currentCSV, inputCSVheaders)
+		if err != nil {
+			return fmt.Errorf("get newHeadersFromInput error: %w", err)
+		}
+
+		if err := addNewHeaders(currentCSV, input, origHeaders, newHeaders, file); err != nil {
+			return fmt.Errorf("add new headers %q: %w", constants.ExpenseFileName, err)
+		}
+
+		if err := fm.Write(file, os.O_APPEND, input); err != nil {
+			return fmt.Errorf("create %q: %w", constants.ExpenseFileName, err)
+		}
+
+		return nil
+	}
+
 	if len(currentCSV[0]) > len(inputCSVheaders[0]) {
-		orig, newHeaders := make([]string, 0), make([]string, 0)
-		orig, newHeaders = append(orig, currentCSV[0]...), append(newHeaders, inputCSVheaders[0]...)
-
-		for _, CSVheader := range currentCSV[0] {
-			for _, inputCSVheader := range inputCSVheaders[0] {
-				if CSVheader == inputCSVheader {
-					idx := slices.Index(orig, CSVheader)
-					if idx == -1 {
-						return errors.New("columns's header not found")
-					}
-					orig = slices.Delete(orig, idx, idx+1)
-					idx = slices.Index(newHeaders, CSVheader)
-					if idx == -1 {
-						return errors.New("columns's header not found")
-					}
-					newHeaders = slices.Delete(newHeaders, idx, idx+1)
-					break
-				}
-			}
+		origHeaders, newHeaders, err := newHeadersFromInput(currentCSV, inputCSVheaders)
+		if err != nil {
+			return fmt.Errorf("get newHeadersFromInput error: %w", err)
 		}
 
-		for _, v := range orig {
-			idx := slices.Index(currentCSV[0], v)
-			if idx == -1 {
-				newHeaders = append(newHeaders, v)
-			}
-			input[0] = slices.Insert(input[0], idx, "")
-		}
-
-		if len(newHeaders) > 0 {
-			// inputCSVheaders[0] = append(inputCSVheaders[0], newHeaders...)
-			tempNewCSVheaders := make([][]string, 0, len(currentCSV[0]))
-			tempNewCSVheaders = append(tempNewCSVheaders, append(currentCSV[0], newHeaders...))
-			if err := addHeader(currentCSV, tempNewCSVheaders, input, file); err != nil {
-				return fmt.Errorf("add header: %w", err)
-			}
+		if err := addNewHeaders(currentCSV, input, origHeaders, newHeaders, file); err != nil {
+			return fmt.Errorf("add new headers %q: %w", constants.ExpenseFileName, err)
 		}
 
 		if err := fm.Write(file, os.O_APPEND, input); err != nil {
