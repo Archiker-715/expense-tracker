@@ -1,11 +1,9 @@
 package main
 
 import (
-	"flag"
-	"io"
+	"fmt"
 	"log"
 	"os"
-	"slices"
 	"strings"
 
 	"github.com/Archiker-715/expense-tracker/constants"
@@ -26,42 +24,55 @@ func main() {
 
 	switch os.Args[1] {
 	case constants.Add:
-		add := flag.NewFlagSet("add", flag.ContinueOnError)
-		addDescription := add.String(constants.Description, "", "expense description")
-		addAmount := add.String(constants.Amount, "0", "expense amount")
-
-		add.SetOutput(io.Discard)
-		var untypedFlags []string
-		if err := add.Parse(os.Args[2:]); err != nil {
-			if len(os.Args) > 0 {
-				untypedFlags = parseUntypedFlags(os.Args, *addDescription, *addAmount, constants.Add)
-			} else {
-				log.Fatalf("parsing flags: %v", err)
+		var (
+			flags []string
+			err   error
+		)
+		if len(os.Args) > 2 {
+			flags, err = parse(os.Args)
+			if err != nil {
+				log.Fatal(err)
 			}
 		}
 
-		if err := exp.AddExpense(addDescription, addAmount, untypedFlags); err != nil {
+		if err = exp.AddExpense(flags); err != nil {
+			log.Fatal(err)
+		}
+	case constants.Update:
+		flags, err := parse(os.Args)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if err := exp.UpdateExpense(flags); err != nil {
 			log.Fatalf("%v", err)
 		}
 	}
 }
 
-func parseUntypedFlags(s []string, expenseDesc, expenseAmount, command string) (untypedFlags []string) {
-	output := make([]string, 0)
-	for _, str := range s[1:] {
-		if !strings.Contains(str, command) && !strings.Contains(str, constants.Description) && !strings.Contains(str, expenseDesc) && !strings.Contains(str, constants.Amount) {
+func parse(s []string) (flags []string, err error) {
+	flags = make([]string, 0)
+	for i, str := range s[2:] {
+		if i%2 == 0 {
 			if strings.Contains(str, "--") {
 				str = strings.TrimLeft(str, "-")
-				output = append(output, str)
+				flags = append(flags, str)
 				continue
+			} else {
+				return nil, fmt.Errorf("parsing flags error on value %q", str)
 			}
-			output = append(output, str)
+		} else if i%2 != 0 {
+			if !strings.Contains(str, "--") {
+				flags = append(flags, str)
+				continue
+			} else {
+				return nil, fmt.Errorf("parsing flags error on value %q", str)
+			}
 		}
 	}
-	idx := slices.Index(output, expenseAmount)
-	untypedFlags = slices.Delete(output, idx, idx+1)
-	if len(untypedFlags)%2 != 0 {
-		log.Fatalf("test")
+
+	if len(flags)%2 != 0 {
+		return nil, fmt.Errorf("pair flags and value error. Your input %q, parsing result %q", s, flags)
 	}
 
 	return

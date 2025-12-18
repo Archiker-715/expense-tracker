@@ -4,7 +4,8 @@ const (
 	ExpenseFileName = "expenses.csv"
 
 	// commands
-	Add = "add"
+	Add    = "add"
+	Update = "update"
 
 	// typed flags
 	Description = "description"

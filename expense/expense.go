@@ -12,7 +12,7 @@ import (
 	fm "github.com/Archiker-715/expense-tracker/file-manager"
 )
 
-func AddExpense(expenseDesc, expenseAmount *string, untypedFlags []string) (err error) {
+func AddExpense(flags []string) (err error) {
 	maxExpId := func(slice [][]string) (string, error) {
 		if len(slice) == 1 {
 			return "1", nil // len == 1 because csv have only headers
@@ -33,7 +33,7 @@ func AddExpense(expenseDesc, expenseAmount *string, untypedFlags []string) (err 
 	}
 
 	initHeaders := func(untypedFlags []string) (headers [][]string, values []string) {
-		initialHeaders := []string{"ID", "Date", "Description", "Amount"}
+		initialHeaders := []string{"ID", "Date"}
 		headers = make([][]string, 0, (len(untypedFlags)/2)+len(initialHeaders))
 		values = make([]string, 0, (len(untypedFlags) / 2))
 		for i, v := range untypedFlags {
@@ -50,7 +50,7 @@ func AddExpense(expenseDesc, expenseAmount *string, untypedFlags []string) (err 
 	fillInput := func(additionalValues []string, maxExpenseId string) [][]string {
 		defaultInput := make([]string, 0)
 		inp := make([][]string, 0)
-		defaultInput = append(defaultInput, maxExpenseId, time.Now().Format(time.DateTime), *expenseDesc, *expenseAmount)
+		defaultInput = append(defaultInput, maxExpenseId, time.Now().Format(time.DateTime))
 		defaultInput = append(defaultInput, additionalValues...)
 		inp = append(inp, defaultInput)
 		return inp
@@ -129,7 +129,7 @@ func AddExpense(expenseDesc, expenseAmount *string, untypedFlags []string) (err 
 		inputCSVheaders  [][]string
 		additionalValues []string
 	)
-	inputCSVheaders, additionalValues = initHeaders(untypedFlags)
+	inputCSVheaders, additionalValues = initHeaders(flags)
 	switch fm.CheckExist(constants.ExpenseFileName) {
 	case false:
 		fmt.Printf("file %q not found. Will be create in current directory\n", constants.ExpenseFileName)
@@ -209,4 +209,9 @@ func AddExpense(expenseDesc, expenseAmount *string, untypedFlags []string) (err 
 	}
 
 	return errors.New("unexpected end of func")
+}
+
+func UpdateExpense(untypedFlags []string) error {
+
+	return nil
 }
