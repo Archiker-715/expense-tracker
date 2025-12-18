@@ -50,9 +50,9 @@ func main() {
 	}
 }
 
-func parse(s []string) (flags []string, err error) {
+func parse(userInput []string) (flags []string, err error) {
 	flags = make([]string, 0)
-	for i, str := range s[2:] {
+	for i, str := range userInput[2:] {
 		if i%2 == 0 {
 			if strings.Contains(str, "--") {
 				str = strings.TrimLeft(str, "-")
@@ -72,7 +72,7 @@ func parse(s []string) (flags []string, err error) {
 	}
 
 	if len(flags)%2 != 0 {
-		return nil, fmt.Errorf("pair flags and value error. Your input %q, parsing result %q", s, flags)
+		return nil, fmt.Errorf("pair flags and value error. Your input %q, parsing result %q", userInput, flags)
 	}
 
 	return

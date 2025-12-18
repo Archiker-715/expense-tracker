@@ -211,7 +211,13 @@ func AddExpense(flags []string) (err error) {
 	return errors.New("unexpected end of func")
 }
 
-func UpdateExpense(untypedFlags []string) error {
-
+func UpdateExpense(flags []string) error {
+	// check file exists
+	// open file
+	// check --id from flags exists in file
+	// check all flags and warn user if not all flags equal with csv
+	// build [][]string for csv which contains user input with flags and values
+	// check out about rewrite one csv-string
+	// rewrite csv/csv-string
 	return nil
 }
