@@ -51,6 +51,9 @@ func Write(file *os.File, flag int, input [][]string) error {
 	}
 
 	w.Flush()
+	if err := w.Error(); err != nil {
+		return fmt.Errorf("error flush data in file: %w", err)
+	}
 
 	return nil
 }

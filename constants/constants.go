@@ -7,7 +7,8 @@ const (
 	Add    = "add"
 	Update = "update"
 
-	// typed flags
-	Description = "description"
-	Amount      = "amount"
+	// typed columns
+
+	Id   = "ID"
+	Date = "Date"
 )

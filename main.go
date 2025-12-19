@@ -56,6 +56,11 @@ func parse(userInput []string) (flags []string, err error) {
 		if i%2 == 0 {
 			if strings.Contains(str, "--") {
 				str = strings.TrimLeft(str, "-")
+				if strings.EqualFold(strings.ToUpper(str), strings.ToUpper(constants.Id)) {
+					str = strings.ToUpper(str)
+					flags = append(flags, str)
+					continue
+				}
 				flags = append(flags, str)
 				continue
 			} else {
