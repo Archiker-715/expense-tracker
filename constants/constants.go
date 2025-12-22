@@ -6,6 +6,7 @@ const (
 	// commands
 	Add    = "add"
 	Update = "update"
+	Delete = "delete"
 
 	// typed columns
 

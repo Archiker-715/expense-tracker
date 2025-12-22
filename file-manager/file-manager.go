@@ -3,6 +3,7 @@ package fm
 import (
 	"encoding/csv"
 	"fmt"
+	"io"
 	"log"
 	"os"
 )
@@ -44,8 +45,13 @@ func Write(file *os.File, flag int, input [][]string) error {
 	}
 
 	if flag == os.O_RDWR {
-		err := w.WriteAll(input)
-		if err != nil {
+		if err := file.Truncate(0); err != nil {
+			return fmt.Errorf("truncate err: %q", err)
+		}
+		if _, err := file.Seek(0, io.SeekStart); err != nil {
+			return fmt.Errorf("seek err: %q", err)
+		}
+		if err := w.WriteAll(input); err != nil {
 			return fmt.Errorf("writing all err: %q", err)
 		}
 	}

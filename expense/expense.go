@@ -213,19 +213,6 @@ func AddExpense(flags []string) (err error) {
 }
 
 func UpdateExpense(flags []string) error {
-	indexById := func(csv [][]string, id string) (stringIndex int) {
-		for i, csvStr := range csv {
-			if csvStr[0] == id {
-				stringIndex = i
-				break
-			}
-		}
-		if stringIndex == 0 {
-			return -1
-		}
-		return
-	}
-
 	buildCSV := func(csv [][]string, flagsVals []string, stringIndex int) ([][]string, error) {
 		flagsIdxVals := make(map[string]map[int]string)
 		idxVals := make(map[int]string)
@@ -256,30 +243,11 @@ func UpdateExpense(flags []string) error {
 		return csv, nil
 	}
 
-	idIdx := slices.Index(flags, constants.Id)
-	if idIdx == -1 {
-		return fmt.Errorf("nothing to update, flags not contains id")
-	}
-
-	if exists := fm.CheckExist(constants.ExpenseFileName); !exists {
-		return fmt.Errorf("file %q not exists. Please add your first expense", constants.ExpenseFileName)
-	}
-
-	file, err := fm.Open(constants.ExpenseFileName, 1)
+	csv, stringIdx, file, err := prepareCSV(flags)
 	if err != nil {
-		return fmt.Errorf("open file error: %w", err)
+		return fmt.Errorf("prepare CSV error: %w", err)
 	}
 	defer file.Close()
-
-	csv, err := fm.Read(file)
-	if err != nil {
-		return fmt.Errorf("read csv error: %w", err)
-	}
-
-	stringIdx := indexById(csv, flags[idIdx+1])
-	if stringIdx == -1 {
-		return fmt.Errorf("not found 'id %v' in csv", flags[idIdx+1])
-	}
 
 	csv, err = buildCSV(csv, flags, stringIdx)
 	if err != nil {
@@ -291,4 +259,63 @@ func UpdateExpense(flags []string) error {
 	}
 
 	return nil
+}
+
+func DeleteExpense(flags []string) error {
+
+	csv, stringIdx, file, err := prepareCSV(flags)
+	if err != nil {
+		return fmt.Errorf("prepare CSV error: %w", err)
+	}
+	defer file.Close()
+
+	csv = slices.Delete(csv, stringIdx, stringIdx+1)
+
+	if err := fm.Write(file, os.O_RDWR, csv); err != nil {
+		return fmt.Errorf("update csv error: %w", err)
+	}
+
+	return nil
+}
+
+// base file checks and find ID in CSV
+func prepareCSV(flags []string) (csv [][]string, stringIdx int, file *os.File, err error) {
+	indexById := func(csv [][]string, id string) (stringIndex int) {
+		for i, csvStr := range csv {
+			if csvStr[0] == id {
+				stringIndex = i
+				break
+			}
+		}
+		if stringIndex == 0 {
+			return -1
+		}
+		return
+	}
+
+	idIdx := slices.Index(flags, constants.Id)
+	if idIdx == -1 {
+		return nil, -1, file, fmt.Errorf("nothing to update, flags not contains id")
+	}
+
+	if exists := fm.CheckExist(constants.ExpenseFileName); !exists {
+		return nil, -1, file, fmt.Errorf("file %q not exists. Please add your first expense", constants.ExpenseFileName)
+	}
+
+	file, err = fm.Open(constants.ExpenseFileName, os.O_RDWR)
+	if err != nil {
+		return nil, -1, file, fmt.Errorf("open file error: %w", err)
+	}
+
+	csv, err = fm.Read(file)
+	if err != nil {
+		return nil, -1, file, fmt.Errorf("read csv error: %w", err)
+	}
+
+	stringIdx = indexById(csv, flags[idIdx+1])
+	if stringIdx == -1 {
+		return nil, -1, file, fmt.Errorf("not found 'id %v' in csv", flags[idIdx+1])
+	}
+
+	return
 }
