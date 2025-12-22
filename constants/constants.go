@@ -4,9 +4,12 @@ const (
 	ExpenseFileName = "expenses.csv"
 
 	// commands
-	Add = "add"
+	Add    = "add"
+	Update = "update"
+	Delete = "delete"
 
-	// typed flags
-	Description = "description"
-	Amount      = "amount"
+	// typed columns
+
+	Id   = "ID"
+	Date = "Date"
 )

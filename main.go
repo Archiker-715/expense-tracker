@@ -1,8 +1,7 @@
 package main
 
 import (
-	"flag"
-	"io"
+	"fmt"
 	"log"
 	"os"
 	"slices"
@@ -15,53 +14,119 @@ import (
 func main() {
 
 	// for dbg
-	os.Args = []string{
-		"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
-		"add",
-		"--description", "desc",
-		"--amount", "10",
-		"--test1", "100",
-		"--test2", "200",
-	}
+
+	// os.Args = []string{
+	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"add",
+	// 	"--description", "desc",
+	// 	"--amount", "10",
+	// 	"--test1", "100",
+	// 	"--test1", "100",
+	// }
+
+	// os.Args = []string{
+	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"update",
+	// 	"--id", "2",
+	// }
+
+	// os.Args = []string{
+	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"delete",
+	// 	"--id", "8",
+	// }
+
+	var (
+		flags []string
+		err   error
+	)
 
 	switch os.Args[1] {
 	case constants.Add:
-		add := flag.NewFlagSet("add", flag.ContinueOnError)
-		addDescription := add.String(constants.Description, "", "expense description")
-		addAmount := add.String(constants.Amount, "0", "expense amount")
-
-		add.SetOutput(io.Discard)
-		var untypedFlags []string
-		if err := add.Parse(os.Args[2:]); err != nil {
-			if len(os.Args) > 0 {
-				untypedFlags = parseUntypedFlags(os.Args, *addDescription, *addAmount, constants.Add)
-			} else {
-				log.Fatalf("parsing flags: %v", err)
+		if len(os.Args) > 2 {
+			if flags, err = parse(os.Args); err != nil {
+				log.Fatal(err)
 			}
+		} else {
+			log.Fatalf("empty flags list")
 		}
 
-		if err := exp.AddExpense(addDescription, addAmount, untypedFlags); err != nil {
-			log.Fatalf("%v", err)
+		if err = exp.AddExpense(flags); err != nil {
+			log.Fatal(err)
+		}
+	case constants.Update:
+		if len(os.Args) > 2 {
+			if flags, err = parse(os.Args); err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			log.Fatalf("empty flags list")
+		}
+
+		if err := exp.UpdateExpense(flags); err != nil {
+			log.Fatal(err)
+		}
+	case constants.Delete:
+		if len(os.Args) > 2 {
+			if flags, err = parse(os.Args); err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			log.Fatalf("empty flags list")
+		}
+
+		if err := exp.DeleteExpense(flags); err != nil {
+			log.Fatal(err)
 		}
 	}
 }
 
-func parseUntypedFlags(s []string, expenseDesc, expenseAmount, command string) (untypedFlags []string) {
-	output := make([]string, 0)
-	for _, str := range s[1:] {
-		if !strings.Contains(str, command) && !strings.Contains(str, constants.Description) && !strings.Contains(str, expenseDesc) && !strings.Contains(str, constants.Amount) {
+func parse(userInput []string) (flags []string, err error) {
+	duplicateFlags := func(flags []string) error {
+		for i, flag := range flags {
+			if i%2 == 0 {
+				idx := slices.Index(flags, flag)
+				secondIdx := slices.Index(flags[idx+1:], flag)
+				if secondIdx != -1 {
+					return fmt.Errorf("duplicate flag %q", flag)
+				}
+			}
+		}
+		return nil
+	}
+
+	flags = make([]string, 0)
+	for i, str := range userInput[2:] {
+		if i%2 == 0 {
 			if strings.Contains(str, "--") {
 				str = strings.TrimLeft(str, "-")
-				output = append(output, str)
+				if strings.EqualFold(strings.ToUpper(str), strings.ToUpper(constants.Id)) {
+					str = strings.ToUpper(str)
+					flags = append(flags, str)
+					continue
+				}
+				str = strings.ToUpper(str[:1]) + strings.ToLower(str[1:])
+				flags = append(flags, str)
 				continue
+			} else {
+				return nil, fmt.Errorf("parsing flags error on value %q", str)
 			}
-			output = append(output, str)
+		} else if i%2 != 0 {
+			if !strings.Contains(str, "--") {
+				flags = append(flags, str)
+				continue
+			} else {
+				return nil, fmt.Errorf("parsing flags error on value %q", str)
+			}
 		}
 	}
-	idx := slices.Index(output, expenseAmount)
-	untypedFlags = slices.Delete(output, idx, idx+1)
-	if len(untypedFlags)%2 != 0 {
-		log.Fatalf("test")
+
+	if len(flags)%2 != 0 {
+		return nil, fmt.Errorf("pair flags and value error. Your input %q, parsing result %q", userInput, flags)
+	}
+
+	if err := duplicateFlags(flags); err != nil {
+		return nil, fmt.Errorf("duplicate check: %w", err)
 	}
 
 	return

@@ -12,7 +12,7 @@ import (
 	fm "github.com/Archiker-715/expense-tracker/file-manager"
 )
 
-func AddExpense(expenseDesc, expenseAmount *string, untypedFlags []string) (err error) {
+func AddExpense(flags []string) (err error) {
 	maxExpId := func(slice [][]string) (string, error) {
 		if len(slice) == 1 {
 			return "1", nil // len == 1 because csv have only headers
@@ -33,7 +33,7 @@ func AddExpense(expenseDesc, expenseAmount *string, untypedFlags []string) (err 
 	}
 
 	initHeaders := func(untypedFlags []string) (headers [][]string, values []string) {
-		initialHeaders := []string{"ID", "Date", "Description", "Amount"}
+		initialHeaders := []string{constants.Id, constants.Date}
 		headers = make([][]string, 0, (len(untypedFlags)/2)+len(initialHeaders))
 		values = make([]string, 0, (len(untypedFlags) / 2))
 		for i, v := range untypedFlags {
@@ -50,7 +50,7 @@ func AddExpense(expenseDesc, expenseAmount *string, untypedFlags []string) (err 
 	fillInput := func(additionalValues []string, maxExpenseId string) [][]string {
 		defaultInput := make([]string, 0)
 		inp := make([][]string, 0)
-		defaultInput = append(defaultInput, maxExpenseId, time.Now().Format(time.DateTime), *expenseDesc, *expenseAmount)
+		defaultInput = append(defaultInput, maxExpenseId, time.Now().Format(time.DateTime))
 		defaultInput = append(defaultInput, additionalValues...)
 		inp = append(inp, defaultInput)
 		return inp
@@ -129,7 +129,7 @@ func AddExpense(expenseDesc, expenseAmount *string, untypedFlags []string) (err 
 		inputCSVheaders  [][]string
 		additionalValues []string
 	)
-	inputCSVheaders, additionalValues = initHeaders(untypedFlags)
+	inputCSVheaders, additionalValues = initHeaders(flags)
 	switch fm.CheckExist(constants.ExpenseFileName) {
 	case false:
 		fmt.Printf("file %q not found. Will be create in current directory\n", constants.ExpenseFileName)
@@ -147,6 +147,7 @@ func AddExpense(expenseDesc, expenseAmount *string, untypedFlags []string) (err 
 			return fmt.Errorf("create %q: %w", constants.ExpenseFileName, err)
 		}
 	}
+	defer file.Close()
 
 	currentCSV, err := fm.Read(file)
 	if err != nil {
@@ -209,4 +210,112 @@ func AddExpense(expenseDesc, expenseAmount *string, untypedFlags []string) (err 
 	}
 
 	return errors.New("unexpected end of func")
+}
+
+func UpdateExpense(flags []string) error {
+	buildCSV := func(csv [][]string, flagsVals []string, stringIndex int) ([][]string, error) {
+		flagsIdxVals := make(map[string]map[int]string)
+		idxVals := make(map[int]string)
+		var tempFlag string
+		var flagIdx int
+		for i, val := range flagsVals {
+			if i%2 == 0 {
+				if flagIdx = slices.Index(csv[0], val); flagIdx != -1 {
+					tempFlag = val
+					idxVals[flagIdx] = ""
+					flagsIdxVals[val] = idxVals
+					continue
+				} else {
+					return nil, fmt.Errorf("entered flag %q not fount in csv", val)
+				}
+			} else {
+				idxVals[flagIdx] = val
+				flagsIdxVals[tempFlag] = idxVals
+			}
+		}
+
+		for _, m := range flagsIdxVals {
+			for k, v := range m {
+				csv[stringIndex][k] = v
+			}
+		}
+
+		return csv, nil
+	}
+
+	csv, stringIdx, file, err := prepareCSV(flags)
+	if err != nil {
+		return fmt.Errorf("prepare CSV error: %w", err)
+	}
+	defer file.Close()
+
+	csv, err = buildCSV(csv, flags, stringIdx)
+	if err != nil {
+		return fmt.Errorf("build updated csv error: %w", err)
+	}
+
+	if err := fm.Write(file, os.O_RDWR, csv); err != nil {
+		return fmt.Errorf("update csv error: %w", err)
+	}
+
+	return nil
+}
+
+func DeleteExpense(flags []string) error {
+
+	csv, stringIdx, file, err := prepareCSV(flags)
+	if err != nil {
+		return fmt.Errorf("prepare CSV error: %w", err)
+	}
+	defer file.Close()
+
+	csv = slices.Delete(csv, stringIdx, stringIdx+1)
+
+	if err := fm.Write(file, os.O_RDWR, csv); err != nil {
+		return fmt.Errorf("update csv error: %w", err)
+	}
+
+	return nil
+}
+
+// base file checks and find ID in CSV
+func prepareCSV(flags []string) (csv [][]string, stringIdx int, file *os.File, err error) {
+	indexById := func(csv [][]string, id string) (stringIndex int) {
+		for i, csvStr := range csv {
+			if csvStr[0] == id {
+				stringIndex = i
+				break
+			}
+		}
+		if stringIndex == 0 {
+			return -1
+		}
+		return
+	}
+
+	idIdx := slices.Index(flags, constants.Id)
+	if idIdx == -1 {
+		return nil, -1, file, fmt.Errorf("nothing to update, flags not contains id")
+	}
+
+	if exists := fm.CheckExist(constants.ExpenseFileName); !exists {
+		return nil, -1, file, fmt.Errorf("file %q not exists. Please add your first expense", constants.ExpenseFileName)
+	}
+
+	file, err = fm.Open(constants.ExpenseFileName, os.O_RDWR)
+	if err != nil {
+		return nil, -1, file, fmt.Errorf("open file error: %w", err)
+	}
+
+	csv, err = fm.Read(file)
+	if err != nil {
+		return nil, -1, file, fmt.Errorf("read csv error: %w", err)
+	}
+
+	stringIdx = indexById(csv, flags[idIdx+1])
+	if stringIdx == -1 {
+		return nil, -1, file, fmt.Errorf("not found 'id %v' in csv", flags[idIdx+1])
+	}
+
+	return
 }
