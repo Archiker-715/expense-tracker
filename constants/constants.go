@@ -4,9 +4,14 @@ const (
 	ExpenseFileName = "expenses.csv"
 
 	// commands
-	Add    = "add"
-	Update = "update"
-	Delete = "delete"
+	Add            = "add"
+	Update         = "update"
+	Delete         = "delete"
+	DeleteCategory = "delcat"
+	List           = "list"
+	Summary        = "summary"
+	Month          = "month"
+	Year           = "year"
 
 	// typed columns
 
