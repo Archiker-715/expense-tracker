@@ -6,6 +6,7 @@ import (
 	"os"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Archiker-715/expense-tracker/constants"
@@ -243,7 +244,7 @@ func UpdateExpense(flags []string) error {
 		return csv, nil
 	}
 
-	csv, stringIdx, file, err := prepareCSV(flags)
+	csv, stringIdx, file, err := prepareCSV(flags, true)
 	if err != nil {
 		return fmt.Errorf("prepare CSV error: %w", err)
 	}
@@ -263,7 +264,7 @@ func UpdateExpense(flags []string) error {
 
 func DeleteExpense(flags []string) error {
 
-	csv, stringIdx, file, err := prepareCSV(flags)
+	csv, stringIdx, file, err := prepareCSV(flags, true)
 	if err != nil {
 		return fmt.Errorf("prepare CSV error: %w", err)
 	}
@@ -278,8 +279,141 @@ func DeleteExpense(flags []string) error {
 	return nil
 }
 
+func DeleteCategories(flags []string) error {
+	csv, _, file, err := prepareCSV(flags, false)
+	if err != nil {
+		return fmt.Errorf("prepare CSV error: %w", err)
+	}
+	defer file.Close()
+
+	newCSV := csvByCategory(csv, flags, constants.DeleteCategory)
+
+	if err := fm.Write(file, os.O_RDWR, newCSV); err != nil {
+		return fmt.Errorf("update csv error: %w", err)
+	}
+
+	return nil
+}
+
+func ListExpense(flags []string) error {
+	csv, _, file, err := prepareCSV(flags, false)
+	if err != nil {
+		return fmt.Errorf("prepare CSV error: %w", err)
+	}
+	defer file.Close()
+
+	if len(flags) == 0 {
+		fm.Print(csv)
+	} else {
+		fm.Print(csvByCategory(csv, flags, constants.List))
+	}
+
+	return nil
+}
+
+func Summary(flags []string, dateFilter map[string]string) error {
+	type flagMetadata struct {
+		Flag string
+		Sum  int
+	}
+
+	sum := func(csv [][]string, flags []string) (flagData map[int]*flagMetadata) {
+		flagData = make(map[int]*flagMetadata, 0)
+		for i, column := range csv[0] {
+			for _, flag := range flags {
+				if strings.EqualFold(column, flag) {
+					flagData[i] = &flagMetadata{Flag: flag}
+				}
+			}
+		}
+
+		for i, csvStr := range csv {
+			for j, val := range csvStr {
+				for k := range flagData {
+					if i > 0 {
+						if k == j {
+							if val != "" {
+								valInt, err := strconv.Atoi(val)
+								if err != nil {
+									fmt.Printf("columnn: %v, string %d: cannot convert %q to int, value was not summing. Please check your CSV-file\n", flagData[k].Flag, i, val)
+								}
+								flagData[k].Sum += valInt
+							}
+						}
+					}
+				}
+			}
+		}
+		return
+	}
+
+	filter := func(csv [][]string, dateFilter map[string]string) ([][]string, error) {
+		var (
+			yearInt  int
+			monthInt int
+			err      error
+		)
+		newCSV := make([][]string, 0)
+		year, yearOk := dateFilter[constants.Year]
+		if yearOk {
+			if yearInt, err = strconv.Atoi(year); err != nil {
+				return nil, fmt.Errorf("cannot convert %q to int", year)
+			}
+		}
+		month, monthOk := dateFilter[constants.Month]
+		if monthOk {
+			if monthInt, err = strconv.Atoi(month); err != nil {
+				return nil, fmt.Errorf("cannot convert %q to int", month)
+			}
+		}
+		newCSV = append(newCSV, csv[0])
+		for _, csvStr := range csv[1:] {
+			parsedTime, err := time.Parse("2006-01-02 15:04:05", csvStr[1])
+			if err != nil {
+				return nil, fmt.Errorf("parse time: %w", err)
+			}
+			if yearOk && monthOk {
+				if parsedTime.Year() == yearInt && parsedTime.Month() == time.Month(monthInt) {
+					newCSV = append(newCSV, csvStr)
+				}
+			}
+			if yearOk && !monthOk {
+				if parsedTime.Year() == yearInt {
+					newCSV = append(newCSV, csvStr)
+				}
+			}
+			if !yearOk && monthOk {
+				if parsedTime.Month() == time.Month(monthInt) {
+					newCSV = append(newCSV, csvStr)
+				}
+			}
+
+		}
+		return newCSV, nil
+	}
+
+	csv, _, file, err := prepareCSV(flags, false)
+	if err != nil {
+		return fmt.Errorf("prepare CSV error: %w", err)
+	}
+	defer file.Close()
+
+	if len(dateFilter) > 0 {
+		if csv, err = filter(csv, dateFilter); err != nil {
+			return fmt.Errorf("filtering error: %w", err)
+		}
+	}
+
+	flagData := sum(csv, flags)
+	for _, v := range flagData {
+		fmt.Printf("Columm %q, Summary: %d\n", v.Flag, v.Sum)
+	}
+
+	return nil
+}
+
 // base file checks and find ID in CSV
-func prepareCSV(flags []string) (csv [][]string, stringIdx int, file *os.File, err error) {
+func prepareCSV(flags []string, needIndexing bool) (csv [][]string, stringIdx int, file *os.File, err error) {
 	indexById := func(csv [][]string, id string) (stringIndex int) {
 		for i, csvStr := range csv {
 			if csvStr[0] == id {
@@ -293,9 +427,12 @@ func prepareCSV(flags []string) (csv [][]string, stringIdx int, file *os.File, e
 		return
 	}
 
-	idIdx := slices.Index(flags, constants.Id)
-	if idIdx == -1 {
-		return nil, -1, file, fmt.Errorf("nothing to update, flags not contains id")
+	var idIdx int
+	if needIndexing {
+		idIdx = slices.Index(flags, constants.Id)
+		if idIdx == -1 {
+			return nil, -1, file, fmt.Errorf("nothing to update, flags not contains id")
+		}
 	}
 
 	if exists := fm.CheckExist(constants.ExpenseFileName); !exists {
@@ -312,10 +449,62 @@ func prepareCSV(flags []string) (csv [][]string, stringIdx int, file *os.File, e
 		return nil, -1, file, fmt.Errorf("read csv error: %w", err)
 	}
 
-	stringIdx = indexById(csv, flags[idIdx+1])
-	if stringIdx == -1 {
-		return nil, -1, file, fmt.Errorf("not found 'id %v' in csv", flags[idIdx+1])
+	if needIndexing {
+		stringIdx = indexById(csv, flags[idIdx+1])
+		if stringIdx == -1 {
+			return nil, -1, file, fmt.Errorf("not found 'id %v' in csv", flags[idIdx+1])
+		}
 	}
 
 	return
+}
+
+func indexingCategory(CSVcolumns, flags []string) (idxs []int) {
+	idxs = make([]int, 0)
+	for i, column := range CSVcolumns {
+		for _, flag := range flags {
+			if strings.EqualFold(column, flag) {
+				idxs = append(idxs, i)
+			}
+		}
+	}
+	if len(idxs) != len(CSVcolumns) {
+		fmt.Println("not all columns filtered by flags. Check your input")
+	}
+
+	return
+}
+
+func csvByCategory(csv [][]string, flags []string, command string) [][]string {
+	idxs := indexingCategory(csv[0], flags)
+
+	if strings.EqualFold(command, constants.List) {
+		filteredCSV := make([][]string, 0, len(csv))
+		for _, csvStr := range csv {
+			filteredCSVstr := make([]string, 0)
+			for _, idx := range idxs {
+				filteredCSVstr = append(filteredCSVstr, csvStr[idx])
+			}
+			filteredCSV = append(filteredCSV, filteredCSVstr)
+		}
+		return filteredCSV
+	}
+
+	if strings.EqualFold(command, constants.DeleteCategory) {
+		newCSV := make([][]string, 0, len(csv))
+		revertIdxs := make([]int, 0, len(idxs))
+		for i := len(idxs) - 1; i >= 0; i-- {
+			revertIdxs = append(revertIdxs, idxs[i])
+		}
+
+		for _, csvStr := range csv {
+			for _, revertIdx := range revertIdxs {
+				csvStr = slices.Delete(csvStr, revertIdx, revertIdx+1)
+			}
+			newCSV = append(newCSV, csvStr)
+		}
+		return newCSV
+	}
+
+	return nil
 }
