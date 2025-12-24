@@ -20,13 +20,13 @@ func main() {
 
 	// for dbg
 
-	os.Args = []string{
-		"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
-		"add",
-		"--description", "desc",
-		"--amount", "100",
-		"--test1", "100",
-	}
+	// os.Args = []string{
+	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"add",
+	// 	"--description", "desc",
+	// 	"--amount", "100",
+	// 	"--test1", "100",
+	// }
 
 	// os.Args = []string{
 	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
@@ -74,13 +74,30 @@ func main() {
 	// os.Args = []string{
 	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
 	// 	"setbudget",
-	// 	"--month", "12",
+	// 	"--month", "11",
 	// 	"--budget", "1",
-	// 	"--checkcol", "amount",
+	// 	"--checkcol", "t1",
+	// }
+
+	// os.Args = []string{
+	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"updatebudget",
+	// 	"--month", "12",
+	// 	"--budget", "1111",
+	// }
+
+	// os.Args = []string{
+	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"listbudget",
+	// }
+
+	// os.Args = []string{
+	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"deletebudget",
+	// 	"--month", "12",
 	// }
 
 	// check out about export csv with filters
-	// todo: CRUD for json
 
 	var (
 		flags []string
@@ -181,11 +198,41 @@ func main() {
 			if flags, err = parse(os.Args, false); err != nil {
 				log.Fatal(err)
 			}
-			if err := exp.СreateOpts(flags); err != nil {
+			if err := exp.AddOpt(flags); err != nil {
 				log.Fatal(err)
 			}
 		} else {
 			log.Fatalf("not enough flags: need budget, month, checkcol")
+		}
+	case constants.UpdateBudget:
+		if len(os.Args) > 2 {
+			if flags, err = parse(os.Args, false); err != nil {
+				log.Fatal(err)
+			}
+			if err := exp.UpdateOpt(flags); err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			log.Fatalf("empty flags list")
+		}
+	case constants.ListBudget:
+		if len(os.Args) == 1 {
+			if err := exp.ListOpt(); err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			log.Fatalf("empty flags list")
+		}
+	case constants.DeleteBudget:
+		if len(os.Args) == 3 {
+			if flags, err = parse(os.Args, false); err != nil {
+				log.Fatal(err)
+			}
+			if err := exp.DeleteOpt(flags); err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			log.Fatalf("empty flags list")
 		}
 	}
 }
@@ -309,6 +356,9 @@ func checkBudget() error {
 	if err := json.Unmarshal(fm.ReadJson(jsonFile), &opts); err != nil {
 		return fmt.Errorf("parse json: %w", err)
 	}
+	if len(opts.Budget) == 0 {
+		return nil
+	}
 
 	var (
 		checkColumn string
@@ -320,6 +370,9 @@ func checkBudget() error {
 			budgetSum = budget.BudgetSum
 			break
 		}
+	}
+	if checkColumn == "" {
+		return nil
 	}
 	checkColumn = strings.ToUpper(checkColumn[:1]) + strings.ToLower(checkColumn[1:])
 	summaryFlags := []string{checkColumn}

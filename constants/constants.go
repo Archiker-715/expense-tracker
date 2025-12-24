@@ -12,6 +12,9 @@ const (
 	List           = "list"
 	Summary        = "summary"
 	SetBudget      = "setbudget"
+	UpdateBudget   = "updatebudget"
+	ListBudget     = "listbudget"
+	DeleteBudget   = "deletebudget"
 
 	// flags sysnames
 	Budget = "budget"
