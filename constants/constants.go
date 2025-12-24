@@ -2,7 +2,7 @@ package constants
 
 const (
 	ExpenseFileName = "expenses.csv"
-	OptionsFileName = "options.json"
+	OptionsFileName = "expense-options.json"
 
 	// commands
 	Add            = "add"
@@ -11,11 +11,15 @@ const (
 	DeleteCategory = "delcat"
 	List           = "list"
 	Summary        = "summary"
-	Month          = "month"
-	Year           = "year"
+	SetBudget      = "setbudget"
+
+	// flags sysnames
+	Budget = "budget"
+	Columm = "checkcol"
+	Month  = "month"
+	Year   = "year"
 
 	// typed columns
-
 	Id   = "ID"
 	Date = "Date"
 )
