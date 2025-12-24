@@ -13,6 +13,11 @@ import (
 	fm "github.com/Archiker-715/expense-tracker/file-manager"
 )
 
+type flagMetadata struct {
+	Flag string
+	Sum  int
+}
+
 func AddExpense(flags []string) (err error) {
 	maxExpId := func(slice [][]string) (string, error) {
 		if len(slice) == 1 {
@@ -311,11 +316,7 @@ func ListExpense(flags []string) error {
 	return nil
 }
 
-func Summary(flags []string, dateFilter map[string]string) error {
-	type flagMetadata struct {
-		Flag string
-		Sum  int
-	}
+func Summary(flags []string, dateFilter map[string]string) (error, map[int]*flagMetadata) {
 
 	sum := func(csv [][]string, flags []string) (flagData map[int]*flagMetadata) {
 		flagData = make(map[int]*flagMetadata, 0)
@@ -394,22 +395,19 @@ func Summary(flags []string, dateFilter map[string]string) error {
 
 	csv, _, file, err := prepareCSV(flags, false)
 	if err != nil {
-		return fmt.Errorf("prepare CSV error: %w", err)
+		return fmt.Errorf("prepare CSV error: %w", err), nil
 	}
 	defer file.Close()
 
 	if len(dateFilter) > 0 {
 		if csv, err = filter(csv, dateFilter); err != nil {
-			return fmt.Errorf("filtering error: %w", err)
+			return fmt.Errorf("filtering error: %w", err), nil
 		}
 	}
 
 	flagData := sum(csv, flags)
-	for _, v := range flagData {
-		fmt.Printf("Columm %q, Summary: %d\n", v.Flag, v.Sum)
-	}
 
-	return nil
+	return nil, flagData
 }
 
 // base file checks and find ID in CSV

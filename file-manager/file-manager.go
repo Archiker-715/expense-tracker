@@ -2,10 +2,13 @@ package fm
 
 import (
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"os"
+
+	"github.com/Archiker-715/expense-tracker/constants"
 )
 
 func CheckExist(fileName string) bool {
@@ -34,31 +37,56 @@ func Open(fileName string, flag int) (*os.File, error) {
 	return file, nil
 }
 
-func Write(file *os.File, flag int, input [][]string) error {
-	w := csv.NewWriter(file)
+func Write(file *os.File, flag int, input interface{}) error {
 
-	if flag == os.O_APPEND {
-		err := w.Write(input[0])
-		if err != nil {
-			return fmt.Errorf("writing err: %q", err)
+	fileName := file.Name()
+
+	if fileName == constants.ExpenseFileName {
+		body, ok := input.([][]string)
+		if !ok {
+			return errors.New("csv writing error, input is not [][]string")
+		}
+
+		w := csv.NewWriter(file)
+		if flag == os.O_APPEND {
+			err := w.Write(body[0])
+			if err != nil {
+				return fmt.Errorf("writing err: %q", err)
+			}
+		}
+
+		if flag == os.O_RDWR {
+			if err := file.Truncate(0); err != nil {
+				return fmt.Errorf("truncate err: %q", err)
+			}
+			if _, err := file.Seek(0, io.SeekStart); err != nil {
+				return fmt.Errorf("seek err: %q", err)
+			}
+			if err := w.WriteAll(body); err != nil {
+				return fmt.Errorf("writing all err: %q", err)
+			}
+		}
+
+		w.Flush()
+		if err := w.Error(); err != nil {
+			return fmt.Errorf("error flush data in file: %w", err)
 		}
 	}
 
-	if flag == os.O_RDWR {
+	if fileName == constants.OptionsFileName {
+		b, ok := input.([]byte)
+		if !ok {
+			return errors.New("json writing error, input is not []byte")
+		}
 		if err := file.Truncate(0); err != nil {
-			return fmt.Errorf("truncate err: %q", err)
+			log.Fatalf("truncate error: %v", err)
 		}
 		if _, err := file.Seek(0, io.SeekStart); err != nil {
-			return fmt.Errorf("seek err: %q", err)
+			log.Fatalf("seek error: %v", err)
 		}
-		if err := w.WriteAll(input); err != nil {
-			return fmt.Errorf("writing all err: %q", err)
+		if _, err := file.Write(b); err != nil {
+			log.Fatalf("writing expense error: %v", err)
 		}
-	}
-
-	w.Flush()
-	if err := w.Error(); err != nil {
-		return fmt.Errorf("error flush data in file: %w", err)
 	}
 
 	return nil
@@ -74,6 +102,15 @@ func Read(file *os.File) ([][]string, error) {
 		return nil, fmt.Errorf("file is empty")
 	}
 	return s, nil
+}
+
+func ReadJson(file *os.File) []byte {
+	fileContent, err := io.ReadAll(file)
+	if err != nil {
+		log.Fatalf("read file error: %v", err)
+	}
+
+	return fileContent
 }
 
 func Print(s [][]string) error {

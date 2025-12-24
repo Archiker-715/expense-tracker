@@ -1,15 +1,19 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Archiker-715/expense-tracker/constants"
 	exp "github.com/Archiker-715/expense-tracker/expense"
+	fm "github.com/Archiker-715/expense-tracker/file-manager"
 )
 
 func main() {
@@ -20,9 +24,8 @@ func main() {
 	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
 	// 	"add",
 	// 	"--description", "desc",
-	// 	"--amount", "10",
+	// 	"--amount", "100",
 	// 	"--test1", "100",
-	// 	"--test3", "100",
 	// }
 
 	// os.Args = []string{
@@ -68,16 +71,40 @@ func main() {
 	// 	"--test1",
 	// }
 
-	// check out about export csv with filters
+	// os.Args = []string{
+	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"setbudget",
+	// 	"--month", "11",
+	// 	"--budget", "1",
+	// 	"--checkcol", "t1",
+	// }
 
-	// Allow users to set a budget for each month and show a warning when the user exceeds the budget.
-	// create json file with some field included budget and compare budget with current expenses for month
-	// and every time i need check json-file and do summary with filters on curruent month
+	// os.Args = []string{
+	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"updatebudget",
+	// 	"--month", "12",
+	// 	"--budget", "1111",
+	// }
+
+	// os.Args = []string{
+	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"listbudget",
+	// }
+
+	// os.Args = []string{
+	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"deletebudget",
+	// 	"--month", "12",
+	// }
+
+	// check out about export csv with filters
 
 	var (
 		flags []string
 		err   error
 	)
+
+	defer checkBudget()
 
 	os.Args = os.Args[1:]
 
@@ -153,11 +180,56 @@ func main() {
 				if flags, err = parse(os.Args, true); err != nil {
 					log.Fatal(err)
 				}
-				if err := exp.Summary(flags, dateFilter); err != nil {
+				err, flagData := exp.Summary(flags, dateFilter)
+				if err != nil {
 					log.Fatal(err)
+				}
+				for _, v := range flagData {
+					fmt.Printf("Columm %q, Summary: %d\n", v.Flag, v.Sum)
 				}
 			} else {
 				log.Fatalf("empty flags list")
+			}
+		} else {
+			log.Fatalf("empty flags list")
+		}
+	case constants.SetBudget:
+		if len(os.Args) == 7 {
+			if flags, err = parse(os.Args, false); err != nil {
+				log.Fatal(err)
+			}
+			if err := exp.AddOpt(flags); err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			log.Fatalf("not enough flags: need budget, month, checkcol")
+		}
+	case constants.UpdateBudget:
+		if len(os.Args) > 2 {
+			if flags, err = parse(os.Args, false); err != nil {
+				log.Fatal(err)
+			}
+			if err := exp.UpdateOpt(flags); err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			log.Fatalf("empty flags list")
+		}
+	case constants.ListBudget:
+		if len(os.Args) == 1 {
+			if err := exp.ListOpt(); err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			log.Fatalf("empty flags list")
+		}
+	case constants.DeleteBudget:
+		if len(os.Args) == 3 {
+			if flags, err = parse(os.Args, false); err != nil {
+				log.Fatal(err)
+			}
+			if err := exp.DeleteOpt(flags); err != nil {
+				log.Fatal(err)
 			}
 		} else {
 			log.Fatalf("empty flags list")
@@ -258,4 +330,63 @@ func dateFilters(userInput []string) ([]string, map[string]string) {
 
 	return userInput, date
 
+}
+
+func checkBudget() error {
+	jsonFile, err := fm.Open(constants.OptionsFileName, os.O_RDONLY)
+	if err != nil {
+		return fmt.Errorf("open json: %w", err)
+	}
+	defer jsonFile.Close()
+
+	parsedTime, err := time.Parse(time.DateTime, time.Now().Format(time.DateTime))
+	if err != nil {
+		return fmt.Errorf("parse time: %w", err)
+	}
+
+	year := parsedTime.Year()
+	month := int(parsedTime.Month())
+
+	filter := map[string]string{
+		constants.Month: strconv.Itoa(month),
+		constants.Year:  strconv.Itoa(year),
+	}
+
+	var opts exp.Opts
+	if err := json.Unmarshal(fm.ReadJson(jsonFile), &opts); err != nil {
+		return fmt.Errorf("parse json: %w", err)
+	}
+	if len(opts.Budget) == 0 {
+		return nil
+	}
+
+	var (
+		checkColumn string
+		budgetSum   int
+	)
+	for _, budget := range opts.Budget {
+		if budget.Month == month {
+			checkColumn = budget.ColumnCheck
+			budgetSum = budget.BudgetSum
+			break
+		}
+	}
+	if checkColumn == "" {
+		return nil
+	}
+	checkColumn = strings.ToUpper(checkColumn[:1]) + strings.ToLower(checkColumn[1:])
+	summaryFlags := []string{checkColumn}
+
+	err, flagData := exp.Summary(summaryFlags, filter)
+	if err != nil {
+		return fmt.Errorf("summary: %w", err)
+	}
+
+	for _, v := range flagData {
+		if v.Sum > budgetSum {
+			fmt.Printf("Warning: for column %q exceeded budget limit. Expenses: %d , budget: %d, difference: %d ", v.Flag, v.Sum, budgetSum, budgetSum-v.Sum)
+		}
+	}
+
+	return nil
 }
