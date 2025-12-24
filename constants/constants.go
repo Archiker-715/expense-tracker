@@ -2,6 +2,7 @@ package constants
 
 const (
 	ExpenseFileName = "expenses.csv"
+	OptionsFileName = "options.json"
 
 	// commands
 	Add            = "add"

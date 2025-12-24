@@ -413,7 +413,7 @@ func Summary(flags []string, dateFilter map[string]string) error {
 }
 
 // base file checks and find ID in CSV
-func prepareCSV(flags []string, needIndexing bool) (csv [][]string, stringIdx int, file *os.File, err error) {
+func prepareCSV(flags []string, indexingById bool) (csv [][]string, stringIdx int, file *os.File, err error) {
 	indexById := func(csv [][]string, id string) (stringIndex int) {
 		for i, csvStr := range csv {
 			if csvStr[0] == id {
@@ -428,7 +428,7 @@ func prepareCSV(flags []string, needIndexing bool) (csv [][]string, stringIdx in
 	}
 
 	var idIdx int
-	if needIndexing {
+	if indexingById {
 		idIdx = slices.Index(flags, constants.Id)
 		if idIdx == -1 {
 			return nil, -1, file, fmt.Errorf("nothing to update, flags not contains id")
@@ -449,7 +449,7 @@ func prepareCSV(flags []string, needIndexing bool) (csv [][]string, stringIdx in
 		return nil, -1, file, fmt.Errorf("read csv error: %w", err)
 	}
 
-	if needIndexing {
+	if indexingById {
 		stringIdx = indexById(csv, flags[idIdx+1])
 		if stringIdx == -1 {
 			return nil, -1, file, fmt.Errorf("not found 'id %v' in csv", flags[idIdx+1])

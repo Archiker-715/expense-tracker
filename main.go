@@ -59,14 +59,14 @@ func main() {
 	// 	"--test2",
 	// }
 
-	os.Args = []string{
-		"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
-		"summary",
-		"--month", "12",
-		"--year", "2025",
-		"--amount",
-		"--test1",
-	}
+	// os.Args = []string{
+	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"summary",
+	// 	"--month", "12",
+	// 	"--year", "2025",
+	// 	"--amount",
+	// 	"--test1",
+	// }
 
 	// check out about export csv with filters
 
@@ -162,8 +162,6 @@ func main() {
 		} else {
 			log.Fatalf("empty flags list")
 		}
-
-		// summary of expenses for a specific month (of current year)
 	}
 }
 
