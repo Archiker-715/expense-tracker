@@ -15,15 +15,15 @@ func Run() {
 
 	// for dbg
 
-	os.Args = []string{
-		"C:\\Users\\user\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
-		"add",
-		"--description", "desc",
-		"--amount", "100",
-		"--test1", "100",
-		"--category", "another",
-		"--test2", "test",
-	}
+	// os.Args = []string{
+	// 	"C:\\Users\\user\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"add",
+	// 	"--description", "desc",
+	// 	"--amount", "100",
+	// 	"--test1", "100",
+	// 	"--category", "another",
+	// 	"--test2", "test",
+	// }
 
 	// os.Args = []string{
 	// 	"C:\\Users\\user\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
