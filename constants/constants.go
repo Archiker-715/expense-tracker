@@ -1,8 +1,9 @@
 package constants
 
 const (
-	ExpenseFileName = "expenses.csv"
-	OptionsFileName = "expense-options.json"
+	ExpenseFileName         = "expenses.csv"
+	ExportedExpenseFileName = "export-expenses.csv"
+	OptionsFileName         = "expense-options.json"
 
 	// commands
 	Add            = "add"
@@ -15,6 +16,7 @@ const (
 	UpdateBudget   = "updatebudget"
 	ListBudget     = "listbudget"
 	DeleteBudget   = "deletebudget"
+	Export         = "export"
 
 	// flags sysnames
 	Budget = "budget"

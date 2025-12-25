@@ -26,6 +26,8 @@ func main() {
 	// 	"--description", "desc",
 	// 	"--amount", "100",
 	// 	"--test1", "100",
+	// 	"--category", "another",
+	// 	"--test2", "test",
 	// }
 
 	// os.Args = []string{
@@ -44,9 +46,9 @@ func main() {
 	// os.Args = []string{
 	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
 	// 	"list",
-	// 	"id",
-	// 	"deSCRiption",
-	// 	"test1",
+	// 	"--id",
+	// 	"--deSCRiption",
+	// 	"--test1",
 	// }
 
 	// os.Args = []string{
@@ -96,6 +98,16 @@ func main() {
 	// 	"deletebudget",
 	// 	"--month", "12",
 	// }
+
+	os.Args = []string{
+		"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+		"export",
+		"--id",
+		"--deSCRiption",
+		"--test1",
+		"--test2",
+		"--category",
+	}
 
 	// check out about export csv with filters
 
@@ -159,14 +171,14 @@ func main() {
 		}
 	case constants.List:
 		if len(os.Args) == 1 {
-			if err := exp.ListExpense(nil); err != nil {
+			if _, err := exp.ListExpense(nil); err != nil {
 				log.Fatal(err)
 			}
 		} else if len(os.Args) > 1 {
 			if flags, err = parse(os.Args, true); err != nil {
 				log.Fatal(err)
 			}
-			if err := exp.ListExpense(flags); err != nil {
+			if _, err := exp.ListExpense(flags); err != nil {
 				log.Fatal(err)
 			}
 		} else {
@@ -229,6 +241,17 @@ func main() {
 				log.Fatal(err)
 			}
 			if err := exp.DeleteOpt(flags); err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			log.Fatalf("empty flags list")
+		}
+	case constants.Export:
+		if len(os.Args) > 1 {
+			if flags, err = parse(os.Args, true); err != nil {
+				log.Fatal(err)
+			}
+			if err := exp.Export(flags); err != nil {
 				log.Fatal(err)
 			}
 		} else {

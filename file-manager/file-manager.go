@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/Archiker-715/expense-tracker/constants"
 )
@@ -41,7 +42,7 @@ func Write(file *os.File, flag int, input interface{}) error {
 
 	fileName := file.Name()
 
-	if fileName == constants.ExpenseFileName {
+	if strings.Contains(fileName, "csv") {
 		body, ok := input.([][]string)
 		if !ok {
 			return errors.New("csv writing error, input is not [][]string")

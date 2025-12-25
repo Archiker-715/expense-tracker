@@ -300,17 +300,56 @@ func DeleteCategories(flags []string) error {
 	return nil
 }
 
-func ListExpense(flags []string) error {
+func ListExpense(flags []string) ([][]string, error) {
 	csv, _, file, err := prepareCSV(flags, false)
 	if err != nil {
-		return fmt.Errorf("prepare CSV error: %w", err)
+		return nil, fmt.Errorf("prepare CSV error: %w", err)
 	}
 	defer file.Close()
 
 	if len(flags) == 0 {
 		fm.Print(csv)
 	} else {
-		fm.Print(csvByCategory(csv, flags, constants.List))
+		csv = csvByCategory(csv, flags, constants.List)
+		fm.Print(csv)
+	}
+
+	return csv, nil
+}
+
+func Export(flags []string) error {
+	csv, err := ListExpense(flags)
+	if err != nil {
+		return fmt.Errorf("list CSV error: %w", err)
+	}
+
+	var (
+		newCSVfileName string = constants.ExportedExpenseFileName
+		i              int    = 1
+	)
+	for {
+		if fm.CheckExist(newCSVfileName) {
+			if strings.Contains(newCSVfileName, fmt.Sprintf("(%d)", i)) {
+				newCSVfileName = strings.Replace(newCSVfileName, fmt.Sprintf("(%d)", i), fmt.Sprintf("(%d)", i+1), 1)
+				i++
+				continue
+			} else {
+				wExt := strings.TrimRight(newCSVfileName, ".csv")
+				newCSVfileName = fmt.Sprintf("%s (%d).csv", wExt, i)
+			}
+		} else {
+			break
+		}
+	}
+
+	file, err := fm.Create(newCSVfileName)
+	if err != nil {
+		return fmt.Errorf("create exported CSV error: %w", err)
+	}
+	defer file.Close()
+
+	if err := fm.Write(file, os.O_RDWR, csv); err != nil {
+		return fmt.Errorf("update csv error: %w", err)
 	}
 
 	return nil
@@ -466,7 +505,7 @@ func indexingCategory(CSVcolumns, flags []string) (idxs []int) {
 			}
 		}
 	}
-	if len(idxs) != len(CSVcolumns) {
+	if len(idxs) != len(flags) {
 		fmt.Println("not all columns filtered by flags. Check your input")
 	}
 
