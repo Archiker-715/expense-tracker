@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Archiker-715/expense-tracker/constants"
+	"github.com/Archiker-715/expense-tracker/internal/constants"
 )
 
 func CheckExist(fileName string) bool {

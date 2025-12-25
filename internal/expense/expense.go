@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Archiker-715/expense-tracker/constants"
-	fm "github.com/Archiker-715/expense-tracker/file-manager"
+	"github.com/Archiker-715/expense-tracker/internal/constants"
+	fm "github.com/Archiker-715/expense-tracker/internal/file-manager"
 )
 
 type flagMetadata struct {
@@ -249,7 +249,7 @@ func UpdateExpense(flags []string) error {
 		return csv, nil
 	}
 
-	csv, stringIdx, file, err := prepareCSV(flags, true)
+	csv, stringIdx, file, err := fm.PrepareCSV(flags, true)
 	if err != nil {
 		return fmt.Errorf("prepare CSV error: %w", err)
 	}
@@ -269,7 +269,7 @@ func UpdateExpense(flags []string) error {
 
 func DeleteExpense(flags []string) error {
 
-	csv, stringIdx, file, err := prepareCSV(flags, true)
+	csv, stringIdx, file, err := fm.PrepareCSV(flags, true)
 	if err != nil {
 		return fmt.Errorf("prepare CSV error: %w", err)
 	}
@@ -285,7 +285,7 @@ func DeleteExpense(flags []string) error {
 }
 
 func DeleteCategories(flags []string) error {
-	csv, _, file, err := prepareCSV(flags, false)
+	csv, _, file, err := fm.PrepareCSV(flags, false)
 	if err != nil {
 		return fmt.Errorf("prepare CSV error: %w", err)
 	}
@@ -301,7 +301,7 @@ func DeleteCategories(flags []string) error {
 }
 
 func ListExpense(flags []string) ([][]string, error) {
-	csv, _, file, err := prepareCSV(flags, false)
+	csv, _, file, err := fm.PrepareCSV(flags, false)
 	if err != nil {
 		return nil, fmt.Errorf("prepare CSV error: %w", err)
 	}
@@ -432,7 +432,7 @@ func Summary(flags []string, dateFilter map[string]string) (error, map[int]*flag
 		return newCSV, nil
 	}
 
-	csv, _, file, err := prepareCSV(flags, false)
+	csv, _, file, err := fm.PrepareCSV(flags, false)
 	if err != nil {
 		return fmt.Errorf("prepare CSV error: %w", err), nil
 	}
@@ -447,53 +447,6 @@ func Summary(flags []string, dateFilter map[string]string) (error, map[int]*flag
 	flagData := sum(csv, flags)
 
 	return nil, flagData
-}
-
-// base file checks and find ID in CSV
-func prepareCSV(flags []string, indexingById bool) (csv [][]string, stringIdx int, file *os.File, err error) {
-	indexById := func(csv [][]string, id string) (stringIndex int) {
-		for i, csvStr := range csv {
-			if csvStr[0] == id {
-				stringIndex = i
-				break
-			}
-		}
-		if stringIndex == 0 {
-			return -1
-		}
-		return
-	}
-
-	var idIdx int
-	if indexingById {
-		idIdx = slices.Index(flags, constants.Id)
-		if idIdx == -1 {
-			return nil, -1, file, fmt.Errorf("nothing to update, flags not contains id")
-		}
-	}
-
-	if exists := fm.CheckExist(constants.ExpenseFileName); !exists {
-		return nil, -1, file, fmt.Errorf("file %q not exists. Please add your first expense", constants.ExpenseFileName)
-	}
-
-	file, err = fm.Open(constants.ExpenseFileName, os.O_RDWR)
-	if err != nil {
-		return nil, -1, file, fmt.Errorf("open file error: %w", err)
-	}
-
-	csv, err = fm.Read(file)
-	if err != nil {
-		return nil, -1, file, fmt.Errorf("read csv error: %w", err)
-	}
-
-	if indexingById {
-		stringIdx = indexById(csv, flags[idIdx+1])
-		if stringIdx == -1 {
-			return nil, -1, file, fmt.Errorf("not found 'id %v' in csv", flags[idIdx+1])
-		}
-	}
-
-	return
 }
 
 func indexingCategory(CSVcolumns, flags []string) (idxs []int) {

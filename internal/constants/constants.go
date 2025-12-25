@@ -1,6 +1,7 @@
 package constants
 
 const (
+	// filenames
 	ExpenseFileName         = "expenses.csv"
 	ExportedExpenseFileName = "export-expenses.csv"
 	OptionsFileName         = "expense-options.json"
