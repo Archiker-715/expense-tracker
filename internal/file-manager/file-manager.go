@@ -95,6 +95,9 @@ func Write(file *os.File, flag int, input interface{}) error {
 
 func Read(file *os.File) ([][]string, error) {
 	r := csv.NewReader(file)
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return nil, fmt.Errorf("seek err: %q", err)
+	}
 	s, err := r.ReadAll()
 	if err != nil {
 		return nil, fmt.Errorf("read file error: %q", err)
@@ -114,9 +117,9 @@ func ReadJson(file *os.File) []byte {
 	return fileContent
 }
 
-func Print(s [][]string) error {
+func Print(s [][]string) {
 	if len(s) == 0 {
-		return fmt.Errorf("file is empty")
+		log.Fatalf("file is empty")
 	}
 
 	for _, innerS := range s {
@@ -125,6 +128,5 @@ func Print(s [][]string) error {
 			fmt.Printf("%s ", innerS[i])
 		}
 	}
-
-	return nil
+	fmt.Println("")
 }

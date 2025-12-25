@@ -122,6 +122,7 @@ func CheckBudget() error {
 	}
 	defer jsonFile.Close()
 
+	// find out the current year and month
 	parsedTime, err := time.Parse(time.DateTime, time.Now().Format(time.DateTime))
 	if err != nil {
 		return fmt.Errorf("parse time: %w", err)
@@ -143,6 +144,7 @@ func CheckBudget() error {
 		return nil
 	}
 
+	// finds attribs of current month and call summary with filters
 	var (
 		checkColumn string
 		budgetSum   int
@@ -167,7 +169,7 @@ func CheckBudget() error {
 
 	for _, v := range flagData {
 		if v.Sum > budgetSum {
-			fmt.Printf("Warning: for column %q exceeded budget limit. Expenses: %d , budget: %d, difference: %d ", v.Flag, v.Sum, budgetSum, budgetSum-v.Sum)
+			fmt.Printf("Warning: exceeded budget limit for column %q. Expenses: %d , budget: %d, overlimit: %d ", v.Flag, v.Sum, budgetSum, v.Sum-budgetSum)
 		}
 	}
 

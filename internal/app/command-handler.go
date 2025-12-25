@@ -5,6 +5,7 @@ import (
 	"log"
 
 	exp "github.com/Archiker-715/expense-tracker/internal/expense"
+	fm "github.com/Archiker-715/expense-tracker/internal/file-manager"
 	fp "github.com/Archiker-715/expense-tracker/internal/flags"
 )
 
@@ -59,20 +60,23 @@ func deleteExp(args []string) {
 }
 
 func list(args []string) {
+	var csv [][]string
 	if len(args) == 1 { // only list
-		if _, err := exp.ListExpense(nil); err != nil {
+		if csv, err = exp.ListExpense(nil); err != nil {
 			log.Fatal(err)
 		}
 	} else if len(args) > 1 { // list + flags: "--id", "--etc"
+		args = args[1:]
 		if flags, err = fp.Parse(args, true); err != nil {
 			log.Fatal(err)
 		}
-		if _, err := exp.ListExpense(flags); err != nil {
+		if csv, err = exp.ListExpense(flags); err != nil {
 			log.Fatal(err)
 		}
 	} else {
 		log.Fatalf("empty flags list")
 	}
+	fm.Print(csv)
 }
 
 func deleteCategory(args []string) {
@@ -130,7 +134,7 @@ func setBudget(args []string) {
 
 func updateBudget(args []string) {
 	args = args[1:]
-	if len(args) == 4 { // must be "--month", "12", --budget", "1111"
+	if len(args) >= 4 { // minimum is "--month", "12", --budget", "1111"
 		if flags, err = fp.Parse(args, false); err != nil {
 			log.Fatal(err)
 		}
@@ -144,7 +148,6 @@ func updateBudget(args []string) {
 }
 
 func listBudget(args []string) {
-	args = args[1:]
 	if len(args) == 1 { // only listbudget
 		if err := exp.ListOpt(); err != nil {
 			log.Fatal(err)
@@ -169,15 +172,20 @@ func deleteBudget(args []string) {
 }
 
 func exportCSV(args []string) {
-	args = args[1:]
-	if len(args) >= 1 { // minimum is "--column", "value"
-		if flags, err = fp.Parse(args, true); err != nil {
+	if len(args) == 1 { // only export
+		if _, err := exp.ListExpense(nil); err != nil {
 			log.Fatal(err)
 		}
-		if err := exp.Export(flags); err != nil {
+	} else if len(args) >= 1 { // minimum is "--column", "value"
+		args = args[1:]
+		if flags, err = fp.Parse(args, true); err != nil {
 			log.Fatal(err)
 		}
 	} else {
 		log.Fatalf("empty flags list")
+	}
+
+	if err := exp.Export(flags); err != nil {
+		log.Fatal(err)
 	}
 }

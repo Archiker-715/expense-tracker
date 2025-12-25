@@ -25,7 +25,8 @@ func Parse(userInput []string, haveOnlyFlags bool) (flags []string, err error) {
 
 	flags = make([]string, 0)
 	if !haveOnlyFlags {
-		for i, str := range userInput[1:] {
+		// create pairs from input like a "--column", "value"
+		for i, str := range userInput {
 			if i%2 == 0 {
 				if strings.Contains(str, "--") {
 					str = strings.TrimLeft(str, "-")
@@ -53,6 +54,7 @@ func Parse(userInput []string, haveOnlyFlags bool) (flags []string, err error) {
 			return nil, fmt.Errorf("pair flags and value error. Your input %q, parsing result %q", userInput, flags)
 		}
 	} else {
+		// create list from input like "--column", "--column"
 		for _, str := range userInput {
 			if strings.Contains(str, "--") {
 				str = strings.TrimLeft(str, "-")

@@ -1,6 +1,8 @@
 package app
 
 import (
+	"fmt"
+	"log"
 	"os"
 
 	"github.com/Archiker-715/expense-tracker/internal/constants"
@@ -13,31 +15,36 @@ func Run() {
 
 	// for dbg
 
-	// os.Args = []string{
-	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
-	// 	"add",
-	// 	"--description", "desc",
-	// 	"--amount", "100",
-	// 	"--test1", "100",
-	// 	"--category", "another",
-	// 	"--test2", "test",
-	// }
+	os.Args = []string{
+		"C:\\Users\\user\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+		"add",
+		"--description", "desc",
+		"--amount", "100",
+		"--test1", "100",
+		"--category", "another",
+		"--test2", "test",
+	}
 
 	// os.Args = []string{
-	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"C:\\Users\\user\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
 	// 	"update",
 	// 	"--id", "2",
 	// 	"--description", "description",
 	// }
 
 	// os.Args = []string{
-	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"C:\\Users\\user\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
 	// 	"delete",
 	// 	"--id", "2",
 	// }
 
 	// os.Args = []string{
-	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"C:\\Users\\user\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"list",
+	// }
+
+	// os.Args = []string{
+	// 	"C:\\Users\\user\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
 	// 	"list",
 	// 	"--id",
 	// 	"--deSCRiption",
@@ -45,20 +52,27 @@ func Run() {
 	// }
 
 	// os.Args = []string{
-	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"C:\\Users\\user\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
 	// 	"delcat",
 	// 	"--test3",
 	// }
 
 	// os.Args = []string{
-	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"C:\\Users\\user\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
 	// 	"summary",
 	// 	"--test1",
 	// 	"--test2",
 	// }
 
 	// os.Args = []string{
-	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"C:\\Users\\user\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"summary",
+	// 	"--month", "11",
+	// 	"--year", "2025",
+	// }
+
+	// os.Args = []string{
+	// 	"C:\\Users\\user\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
 	// 	"summary",
 	// 	"--month", "11",
 	// 	"--year", "2025",
@@ -67,33 +81,38 @@ func Run() {
 	// }
 
 	// os.Args = []string{
-	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"C:\\Users\\user\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
 	// 	"setbudget",
 	// 	"--month", "11",
 	// 	"--budget", "1",
-	// 	"--checkcol", "t1",
+	// 	"--checkcol", "amount",
 	// }
 
 	// os.Args = []string{
-	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"C:\\Users\\user\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
 	// 	"updatebudget",
 	// 	"--month", "12",
 	// 	"--budget", "1111",
 	// }
 
 	// os.Args = []string{
-	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"C:\\Users\\user\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
 	// 	"listbudget",
 	// }
 
 	// os.Args = []string{
-	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"C:\\Users\\user\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
 	// 	"deletebudget",
 	// 	"--month", "12",
 	// }
 
 	// os.Args = []string{
-	// 	"C:\\Users\\629B~1\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"C:\\Users\\user\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
+	// 	"export",
+	// }
+
+	// os.Args = []string{
+	// 	"C:\\Users\\user\\AppData\\Local\\Temp\\go-build3287855105\\b001\\exe\\main.exe",
 	// 	"export",
 	// 	"--id",
 	// 	"--deSCRiption",
@@ -103,6 +122,10 @@ func Run() {
 	// }
 
 	os.Args = os.Args[1:]
+
+	if len(os.Args) == 0 {
+		log.Fatalf("empty flags list")
+	}
 
 	switch os.Args[0] {
 	case constants.Add:
@@ -127,5 +150,7 @@ func Run() {
 		deleteBudget(os.Args)
 	case constants.Export:
 		exportCSV(os.Args)
+	default:
+		fmt.Println("Command not satisfy to command list. Please check readme")
 	}
 }

@@ -38,6 +38,7 @@ func AddExpense(flags []string) (err error) {
 		return strconv.Itoa(maxExpenseId + 1), nil
 	}
 
+	// split csv-headers & values from user input
 	initHeaders := func(untypedFlags []string) (headers [][]string, values []string) {
 		initialHeaders := []string{constants.Id, constants.Date}
 		headers = make([][]string, 0, (len(untypedFlags)/2)+len(initialHeaders))
@@ -53,6 +54,7 @@ func AddExpense(flags []string) (err error) {
 		return
 	}
 
+	// create initial input based on defaultInput(ID, Date) and userInput
 	fillInput := func(additionalValues []string, maxExpenseId string) [][]string {
 		defaultInput := make([]string, 0)
 		inp := make([][]string, 0)
@@ -62,6 +64,7 @@ func AddExpense(flags []string) (err error) {
 		return inp
 	}
 
+	// build new csv struct with new headers and fill zero-val past csv-strings, then append user input and write csv
 	addHeaderWriteInput := func(CSVheaders, inputCSVheaders, input [][]string, file *os.File) error {
 		iCondition := len(inputCSVheaders[0]) - len(CSVheaders[0])
 		for i := 0; i < iCondition; i++ {
@@ -86,6 +89,7 @@ func AddExpense(flags []string) (err error) {
 		return nil
 	}
 
+	// split current csv-headers and headers from user input
 	newHeadersFromInput := func(currentCSV, inputCSVheaders [][]string) (origHeaders, newHeaders []string, err error) {
 		origHeaders, newHeaders = make([]string, 0), make([]string, 0)
 		origHeaders, newHeaders = append(origHeaders, currentCSV[0]...), append(newHeaders, inputCSVheaders[0]...)
@@ -110,6 +114,7 @@ func AddExpense(flags []string) (err error) {
 		return
 	}
 
+	// add new headers to csv struct and fill zero-vals past csv-strings
 	addNewHeaders := func(currentCSV, input [][]string, origHeaders, newHeaders []string, file *os.File) error {
 		for _, v := range origHeaders {
 			idx := slices.Index(currentCSV[0], v)
@@ -146,8 +151,6 @@ func AddExpense(flags []string) (err error) {
 			return fmt.Errorf("create %q: %w", constants.ExpenseFileName, err)
 		}
 		fmt.Printf("file %q succesfully created\n", constants.ExpenseFileName)
-		file.Close()
-		fallthrough
 	case true:
 		if file, err = fm.Open(constants.ExpenseFileName, os.O_APPEND); err != nil {
 			return fmt.Errorf("create %q: %w", constants.ExpenseFileName, err)
@@ -164,7 +167,7 @@ func AddExpense(flags []string) (err error) {
 		return fmt.Errorf("add expense: %w", err)
 	}
 
-	eq := slices.Equal(currentCSV[0], inputCSVheaders[0])
+	eq := slices.Equal(currentCSV[0], inputCSVheaders[0]) // to understand whether the input contains more or fewer flags than the file contains and his eq
 	input := fillInput(additionalValues, maxExpenseId)
 
 	if len(currentCSV[0]) == len(inputCSVheaders[0]) && eq {
@@ -215,7 +218,7 @@ func AddExpense(flags []string) (err error) {
 		return nil
 	}
 
-	return errors.New("unexpected end of func")
+	return fmt.Errorf("unexpected end of adding expense function. User input %v, read csv %v, builded input %v, equal attrib %v", flags, currentCSV, input, eq)
 }
 
 func UpdateExpense(flags []string) error {
@@ -224,6 +227,7 @@ func UpdateExpense(flags []string) error {
 		idxVals := make(map[int]string)
 		var tempFlag string
 		var flagIdx int
+		// find which columns needs to be updated
 		for i, val := range flagsVals {
 			if i%2 == 0 {
 				if flagIdx = slices.Index(csv[0], val); flagIdx != -1 {
@@ -232,7 +236,7 @@ func UpdateExpense(flags []string) error {
 					flagsIdxVals[val] = idxVals
 					continue
 				} else {
-					return nil, fmt.Errorf("entered flag %q not fount in csv", val)
+					return nil, fmt.Errorf("entered flag %q not found in csv", val)
 				}
 			} else {
 				idxVals[flagIdx] = val
@@ -240,6 +244,7 @@ func UpdateExpense(flags []string) error {
 			}
 		}
 
+		// fill values of found columns
 		for _, m := range flagsIdxVals {
 			for k, v := range m {
 				csv[stringIndex][k] = v
@@ -308,13 +313,12 @@ func ListExpense(flags []string) ([][]string, error) {
 	defer file.Close()
 
 	if len(flags) == 0 {
-		fm.Print(csv)
+		// when user entered just a list commmand then return all csv
+		return csv, nil
 	} else {
 		csv = csvByCategory(csv, flags, constants.List)
-		fm.Print(csv)
+		return csv, nil
 	}
-
-	return csv, nil
 }
 
 func Export(flags []string) error {
@@ -327,6 +331,7 @@ func Export(flags []string) error {
 		newCSVfileName string = constants.ExportedExpenseFileName
 		i              int    = 1
 	)
+	// checks if fileName already exists
 	for {
 		if fm.CheckExist(newCSVfileName) {
 			if strings.Contains(newCSVfileName, fmt.Sprintf("(%d)", i)) {
@@ -358,6 +363,7 @@ func Export(flags []string) error {
 func Summary(flags []string, dateFilter map[string]string) (error, map[int]*flagMetadata) {
 
 	sum := func(csv [][]string, flags []string) (flagData map[int]*flagMetadata) {
+		// maps csv-columns and compare to flags, if equal - store data
 		flagData = make(map[int]*flagMetadata, 0)
 		for i, column := range csv[0] {
 			for _, flag := range flags {
@@ -367,6 +373,7 @@ func Summary(flags []string, dateFilter map[string]string) (error, map[int]*flag
 			}
 		}
 
+		// sums all int values from column based on stored data
 		for i, csvStr := range csv {
 			for j, val := range csvStr {
 				for k := range flagData {
@@ -375,7 +382,7 @@ func Summary(flags []string, dateFilter map[string]string) (error, map[int]*flag
 							if val != "" {
 								valInt, err := strconv.Atoi(val)
 								if err != nil {
-									fmt.Printf("columnn: %v, string %d: cannot convert %q to int, value was not summing. Please check your CSV-file\n", flagData[k].Flag, i, val)
+									fmt.Printf("columnn: %v, string %d: cannot convert %q to int, value was not summing. Please check your CSV-file\n", flagData[k].Flag, i+1, val)
 								}
 								flagData[k].Sum += valInt
 							}
@@ -387,6 +394,7 @@ func Summary(flags []string, dateFilter map[string]string) (error, map[int]*flag
 		return
 	}
 
+	// filter csv by year and month
 	filter := func(csv [][]string, dateFilter map[string]string) ([][]string, error) {
 		var (
 			yearInt  int
@@ -449,6 +457,7 @@ func Summary(flags []string, dateFilter map[string]string) (error, map[int]*flag
 	return nil, flagData
 }
 
+// finds the idnex of column from user input
 func indexingCategory(CSVcolumns, flags []string) (idxs []int) {
 	idxs = make([]int, 0)
 	for i, column := range CSVcolumns {
@@ -468,6 +477,7 @@ func indexingCategory(CSVcolumns, flags []string) (idxs []int) {
 func csvByCategory(csv [][]string, flags []string, command string) [][]string {
 	idxs := indexingCategory(csv[0], flags)
 
+	// filters CSV by idxs of columns
 	if strings.EqualFold(command, constants.List) {
 		filteredCSV := make([][]string, 0, len(csv))
 		for _, csvStr := range csv {
@@ -480,6 +490,7 @@ func csvByCategory(csv [][]string, flags []string, command string) [][]string {
 		return filteredCSV
 	}
 
+	// delete categories by idxs of columns
 	if strings.EqualFold(command, constants.DeleteCategory) {
 		newCSV := make([][]string, 0, len(csv))
 		revertIdxs := make([]int, 0, len(idxs))

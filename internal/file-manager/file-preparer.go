@@ -12,6 +12,7 @@ import (
 	"github.com/Archiker-715/expense-tracker/internal/entity"
 )
 
+// base file checks
 func PrepareJSON(flags []string, operation string) (file *os.File, budget entity.Budget, opts entity.Opts, err error) {
 	checkMonthExist := func(opts entity.Opts, month int) bool {
 		for _, budget := range opts.Budget {
@@ -36,14 +37,15 @@ func PrepareJSON(flags []string, operation string) (file *os.File, budget entity
 			return nil, budget, opts, fmt.Errorf("create %q: %w", constants.OptionsFileName, err)
 		}
 		fmt.Printf("file %q succesfully created\n", constants.OptionsFileName)
-
 	}
 
+	// no need to do checks if list
 	if operation == constants.ListBudget {
 		file.Close()
 		return nil, budget, opts, nil
 	}
 
+	// parse budget, month and checkColumn flags
 	var month int
 	for i := 0; i < len(flags)-1; i++ {
 		if strings.EqualFold(flags[i], constants.Budget) {
@@ -88,7 +90,7 @@ func PrepareJSON(flags []string, operation string) (file *os.File, budget entity
 	return file, budget, opts, nil
 }
 
-// base file checks and find ID in CSV
+// base file checks and find ID in CSV if need
 func PrepareCSV(flags []string, indexingById bool) (csv [][]string, stringIdx int, file *os.File, err error) {
 	indexById := func(csv [][]string, id string) (stringIndex int) {
 		for i, csvStr := range csv {
